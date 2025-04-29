@@ -1,24 +1,30 @@
 package com.iticbcn;
 
+import java.io.IOException;
 import java.io.ObjectInputStream;
 
 public class FilServidorXAT extends Thread {
-    private ObjectInputStream ois;
-
-    public FilServidorXAT(String nom, ObjectInputStream oie){
-        setName(nom);
-        this.ois = oie;
+    private static final String MSG_SORTIR = "sortir";
+    
+    private ObjectInputStream in;
+    
+    public FilServidorXAT(String nom, ObjectInputStream in) {
+        super(nom);
+        this.in = in;
     }
-
+    
     @Override
-    public void run(){
+    public void run() {
         try {
-            String mensaje;
+            String missatge;
+            // Rebre missatges fins que es rebi MSG_SORTIR
             do {
-                mensaje = (String) ois.readObject();
-            } while(!mensaje.equals(ServidorXAT.MSG_SORIR));
-        } catch (Exception e) {
-            e.printStackTrace();
+                missatge = (String) in.readObject();
+                System.out.println("Missatge ('" + "sortir" + "' per tancar): " + missatge);
+            } while (!missatge.equalsIgnoreCase(MSG_SORTIR));
+            
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("Error al rebre missatges: " + e.getMessage());
         }
     }
 }

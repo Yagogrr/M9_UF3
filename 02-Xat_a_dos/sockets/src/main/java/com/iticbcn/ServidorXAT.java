@@ -1,67 +1,85 @@
 package com.iticbcn;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
 
 public class ServidorXAT {
-    public final static int PORT = 9999;
-    public final static String HOST = "localhost";
-    public final static String MSG_SORIR = "sortir";
-    private ServerSocket srvSocket;
-    private Socket clientSocket;
-    private String nomClient;
-    private DataInputStream entradaClient;
-    private DataOutputStream sortidaClient;
-
+    private static final int PORT = 9999;
+    private static final String HOST = "localhost";
+    private static final String MSG_SORTIR = "sortir";
+    
+    private ServerSocket serverSocket;
+    
+    public ServidorXAT() {
+        try {
+            serverSocket = new ServerSocket(PORT);
+            System.out.println("Servidor iniciat a " + HOST + ":" + PORT);
+        } catch (IOException e) {
+            System.err.println("Error al crear el servidor: " + e.getMessage());
+        }
+    }
+    
     public void iniciarServidor() {
         try {
-            srvSocket = new ServerSocket(PORT);
-            System.out.println("Servidor en marxa a "+HOST+":"+PORT);
-            System.out.println("Esperant connexions a "+HOST+":"+PORT);
-            clientSocket = srvSocket.accept();
-        } catch (IOException e) {
-            e.printStackTrace();
+            Socket clientSocket = serverSocket.accept();
+            System.out.println("Client connectat: " + clientSocket.getInetAddress().getHostAddress());
+            
+            // Crear streams
+            ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
+            ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
+            
+            // Rebre el nom del client
+            String nomClient = getNom(in);
+            System.out.println("Nom rebut: " + nomClient);
+            
+            // Instanciar i iniciar el fil per gestionar la comunicació
+            FilServidorXAT filServidor = new FilServidorXAT(nomClient, in);
+            System.out.println("Fil de xat creat.");
+            filServidor.start();
+            System.out.println("Fil de " + nomClient + " iniciat");
+            
+            // Enviament de missatges des del servidor
+            BufferedReader consola = new BufferedReader(new InputStreamReader(System.in));
+            String missatge;
+            
+            do {
+                missatge = consola.readLine();
+                out.writeObject("Rebut: " + missatge);
+                out.flush();
+                System.out.println("Missatge ('" + MSG_SORTIR + "' per tancar): " + missatge);
+            } while (!missatge.equalsIgnoreCase(MSG_SORTIR));
+            
+            // Esperar a què finalitzi el fil
+            filServidor.join();
+            System.out.println("Fil de xat finalitzat.");
+            
+            // Tancar la connexió
+            clientSocket.close();
+            System.out.println("Servidor aturat.");
+            
+        } catch (IOException | ClassNotFoundException | InterruptedException e) {
+            System.err.println("Error en la comunicació: " + e.getMessage());
         }
     }
-
-    public void getNom() {
-        try {
-            entradaClient = new DataInputStream(clientSocket.getInputStream());
-            sortidaClient = new DataOutputStream(clientSocket.getOutputStream());
-            nomClient = entradaClient.readUTF();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        
+    
+    private String getNom(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        return (String) in.readObject();
     }
-
+    
     public void pararServidor() {
         try {
-            clientSocket.close();
-            srvSocket.close();
-            System.out.println("Servidor tancat.");
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
+            }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error al tancar el servidor: " + e.getMessage());
         }
-
     }
-
-    public DataInputStream getEntradaClient(){ return entradaClient;}
-
-    public static void main(String[] args) throws IOException,InterruptedException{
-        ServidorXAT servidorXAT = new ServidorXAT();
-        servidorXAT.iniciarServidor();
-        servidorXAT.getNom();
-        FilServidorXAT fsx = new FilServidorXAT(HOST, new ObjectInputStream(servidorXAT.getEntradaClient()));
-        fsx.start();
-        /*
-         * Enviar mensajes que lee desde la consola hasta la salida
-         */
-        fsx.join();
-        servidorXAT.pararServidor();
+    
+    public static void main(String[] args) {
+        // Crear instància de ServidorXat
+        ServidorXAT servidor = new ServidorXAT();
+        
+        // Iniciar el servidor
+        servidor.iniciarServidor();
     }
 }

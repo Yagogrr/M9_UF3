@@ -1,63 +1,102 @@
 package com.iticbcn;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Scanner;
 
-public class ClientXAT {
-    public final int PORT = ServidorXAT.PORT;
-    public final String HOST = ServidorXAT.HOST;
+public class ClientXAT { private static final int PORT = 9999;
+    private static final String HOST = "localhost";
+    private static final String MSG_SORTIR = "sortir";
+    
     private Socket socket;
-    private PrintWriter out;
-    private DataInputStream entrada;
-    private DataOutputStream sortida;
-
-    private void connecta() {
+    private ObjectOutputStream out;
+    private ObjectInputStream in;
+    
+    public ClientXAT() {
+        // El constructor no fa res, només inicialitzem variables a connecta()
+    }
+    
+    public void connecta() {
         try {
+            // Obrir el socket al servidor
             socket = new Socket(HOST, PORT);
-            entrada = new DataInputStream(socket.getInputStream());
-            sortida = new DataOutputStream(socket.getOutputStream());
-            System.out.println("Connectat a servidor en " + HOST + ":" + PORT);
-            out = new PrintWriter(socket.getOutputStream(), true);
+            System.out.println("Client connectat a " + HOST + ":" + PORT);
+            
+            // Crear els streams de sortida i entrada
+            out = new ObjectOutputStream(socket.getOutputStream());
+            in = new ObjectInputStream(socket.getInputStream());
+            
+            System.out.println("Flux d'entrada i sortida creat.");
+            
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error al connectar: " + e.getMessage());
         }
     }
-
-    public void enviarMissatge(String msg){
+    
+    public void enviarMissatge(String missatge) {
         try {
-            sortida.writeUTF(msg);
-        } catch (Exception e) {
-            System.out.println("Error enviant el missatge");
+            out.writeObject(missatge);
+            out.flush();
+            System.out.println("Enviant missatge: " + missatge);
+        } catch (IOException e) {
+            System.err.println("Error al enviar missatge: " + e.getMessage());
         }
+    }
+    
+    public void tancarClient() {
+        try {
+            if (socket != null && !socket.isClosed()) {
+                socket.close();
+                System.out.println("Client tancat.");
+            }
+        } catch (IOException e) {
+            System.err.println("Error al tancar el client: " + e.getMessage());
+        }
+    }
+    
+    public static void main(String[] args) {
+        // Instanciar ClientXat
+        ClientXAT client = new ClientXAT();
         
-    }
-
-    public void tanca() {
+        // Connectar al servidor
+        client.connecta();
+        
         try {
-            socket.close();
-            out.close();
+            // Crear el FilLectorCX amb l'ObjectOutputStream
+            FilLectorCX filLector = new FilLectorCX(client.in);
+            System.out.println("Missatge ('" + MSG_SORTIR + "' per tancar): Fil de lectura iniciat");
+            
+            // Iniciar el fil
+            filLector.start();
+            
+            // Demanar el nom de l'usuari
+            Scanner scanner = new Scanner(System.in);
+            System.out.print("Rebut: Escriu el teu nom:\n");
+            String nom = scanner.nextLine();
+            
+            // Enviar el nom al servidor
+            client.enviarMissatge(nom);
+            
+            // Enviar missatges rebuts per consola
+            String missatge;
+            do {
+                missatge = scanner.nextLine();
+                client.enviarMissatge(missatge);
+            } while (!missatge.equalsIgnoreCase(MSG_SORTIR));
+            
+            // Tancar Scanner
+            scanner.close();
+            System.out.println("Tancant client...");
+            
+            // Tancar la connexió
+            client.tancarClient();
+            System.out.println("Client tancat.");
+            System.out.println("El servidor ha tancat la connexió.");
+            
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("Error en l'execució: " + e.getMessage());
         }
     }
-
-    public DataOutputStream getSortidaClient(){ return sortida;}
-
-    public static void main(String[] args) throws IOException {
-        ClientXAT clientXAT = new ClientXAT();
-        clientXAT.connecta();
-        FileLectorCX flcx = new FileLectorCX(new ObjectOutputStream(clientXAT.getSortidaClient()));
-        flcx.start();
-        /*
-         * Envie mensajes recividos por la consola
-         * con scanner
-         */
-        clientXAT.tanca();
-
-    }
-
 }
