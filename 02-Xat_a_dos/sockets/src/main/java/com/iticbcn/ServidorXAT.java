@@ -27,7 +27,7 @@ public class ServidorXAT {
             ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
             ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
             
-            // Rebre el nom del client
+            // Recibir nombre cliente
             String nomClient = getNom(in);
             System.out.println("Nom rebut: " + nomClient);
             
@@ -37,7 +37,7 @@ public class ServidorXAT {
             filServidor.start();
             System.out.println("Fil de " + nomClient + " iniciat");
             
-            // Enviament de missatges des del servidor
+            // Envio mensajes
             BufferedReader consola = new BufferedReader(new InputStreamReader(System.in));
             String missatge;
             
@@ -48,11 +48,11 @@ public class ServidorXAT {
                 System.out.println("Missatge ('" + MSG_SORTIR + "' per tancar): " + missatge);
             } while (!missatge.equalsIgnoreCase(MSG_SORTIR));
             
-            // Esperar a què finalitzi el fil
+            // Esperar fil
             filServidor.join();
             System.out.println("Fil de xat finalitzat.");
             
-            // Tancar la connexió
+            // cerrar la connexion
             clientSocket.close();
             System.out.println("Servidor aturat.");
             
@@ -76,10 +76,7 @@ public class ServidorXAT {
     }
     
     public static void main(String[] args) {
-        // Crear instància de ServidorXat
         ServidorXAT servidor = new ServidorXAT();
-        
-        // Iniciar el servidor
         servidor.iniciarServidor();
     }
 }

@@ -17,7 +17,6 @@ public class FilServidorXAT extends Thread {
     public void run() {
         try {
             String missatge;
-            // Rebre missatges fins que es rebi MSG_SORTIR
             do {
                 missatge = (String) in.readObject();
                 System.out.println("Missatge ('" + "sortir" + "' per tancar): " + missatge);
