@@ -7,36 +7,37 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class Servidor {
-    public final static int PORT = 7777;
+    public final static int PORT = 9999;
     public final static String HOST = "localhost";
     private ServerSocket srvSocket;
     private Socket clientSocket;
 
-    public void connecta() {
+    public Socket connectar() {
         try {
             srvSocket = new ServerSocket(PORT);
             System.out.println("Servidor en marxa a "+HOST+":"+PORT);
             System.out.println("Esperant connexions a "+HOST+":"+PORT);
-            clientSocket = srvSocket.accept();
+            return clientSocket = srvSocket.accept();
         } catch (IOException e) {
             e.printStackTrace();
+            return null;
         }
     }
 
-    public void repDades() {
-        System.out.println("Client connectat: "+clientSocket.getInetAddress());
+    public void enviarFitxers() {
         try (BufferedReader bf = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));) {
             String msg;
-            while ((msg = bf.readLine()) != null) { //per cada misatge, faig un print
-                System.out.println("Rebut: "+msg);
+            while ((msg = bf.readLine()) != null) { 
+                //TODO
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public void tanca() {
+    public void tanca(Socket socket) {
         try {
+            socket.close();
             clientSocket.close();
             srvSocket.close();
             System.out.println("Servidor tancat.");
@@ -48,8 +49,8 @@ public class Servidor {
 
     public static void main(String[] args) {
         Servidor servidor = new Servidor();
-        servidor.connecta();
-        servidor.repDades();
-        servidor.tanca();
+        servidor.connectar();
+        servidor.enviarFitxers();
+        servidor.tanca(null);
     }
 }
