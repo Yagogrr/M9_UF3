@@ -10,7 +10,7 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 
 public class Client {
-    public final String DIR_ARRIBADA = "C:\\Users\\Yago\\AppData\\Local\\Temp"; // o el equivalente en Windows
+    public final String DIR_ARRIBADA = "C:\\Users\\Yago\\AppData\\Local\\Temp"; // Directorio temporal del sistema
     public final int PORT = Servidor.PORT;
     public final String HOST = Servidor.HOST;
     private Socket socket;
@@ -22,6 +22,9 @@ public class Client {
             socket = new Socket(HOST, PORT);
             System.out.println("Connectant a -> " + HOST + ":" + PORT);
             System.out.println("Connexio acceptada: " + socket.getInetAddress().getHostAddress());
+            
+            // Mostrar el directorio donde se guardarán los archivos
+            System.out.println("Els fitxers es guardaran a: " + new File(DIR_ARRIBADA).getAbsolutePath());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -41,13 +44,21 @@ public class Client {
                 }
                 
                 try {
+                    // Crear los streams si no existen
+                    if (oos == null) {
+                        oos = new ObjectOutputStream(socket.getOutputStream());
+                    }
+                    
                     // Enviar el nom del fitxer al servidor
-                    oos = new ObjectOutputStream(socket.getOutputStream());
                     oos.writeObject(nomFitxer);
                     oos.flush();
                     
+                    // Crear el input stream si no existe
+                    if (ois == null) {
+                        ois = new ObjectInputStream(socket.getInputStream());
+                    }
+                    
                     // Rebre el contingut del fitxer
-                    ois = new ObjectInputStream(socket.getInputStream());
                     byte[] contingutFitxer = (byte[]) ois.readObject();
                     
                     if (contingutFitxer == null) {
@@ -59,14 +70,20 @@ public class Client {
                     String nomFitxerSenseRuta = new File(nomFitxer).getName();
                     String fitxerDestino = DIR_ARRIBADA + File.separator + nomFitxerSenseRuta;
                     
+                    // Asegurar que el directorio existe
+                    File dirDestino = new File(DIR_ARRIBADA);
+                    if (!dirDestino.exists()) {
+                        dirDestino.mkdirs();
+                    }
+                    
                     // Guardar el fitxer
                     FileOutputStream fos = new FileOutputStream(fitxerDestino);
                     fos.write(contingutFitxer);
                     fos.close();
                     
-                    System.out.println("Fitxer rebut i guardat com: " + fitxerDestino);
+                    System.out.println("Fitxer rebut i guardat com: " + new File(fitxerDestino).getAbsolutePath());
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    System.out.println("Error: " + e.getMessage());
                 }
             }
             
@@ -80,8 +97,13 @@ public class Client {
 
     public void tancarConnexio() {
         try {
+            // Enviar mensaje de salida al servidor si los streams ya están creados
+            if (oos != null) {
+                oos.writeObject("sortir");
+                oos.flush();
+                oos.close();
+            }
             if (ois != null) ois.close();
-            if (oos != null) oos.close();
             if (socket != null) socket.close();
             System.out.println("Connexio tancada.");
         } catch (IOException e) {

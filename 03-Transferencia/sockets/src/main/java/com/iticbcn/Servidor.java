@@ -28,36 +28,53 @@ public class Servidor {
 
     public void enviarFitxers() {
         try {
-            ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
+            // Crear los streams una sola vez
             ObjectOutputStream oos = new ObjectOutputStream(clientSocket.getOutputStream());
+            ObjectInputStream ois = new ObjectInputStream(clientSocket.getInputStream());
             
-            System.out.println("Esperant el nom del fitxer del client...");
-            String nomFitxer = (String) ois.readObject();
+            String nomFitxer = null;
             
-            if (nomFitxer == null || nomFitxer.equals("sortir")) {
-                System.out.println("Nom del fitxer buit o nul. Sortint...");
-                return;
+            while (true) {
+                System.out.println("Esperant el nom del fitxer del client...");
+                try {
+                    nomFitxer = (String) ois.readObject();
+                    
+                    // Comprobar si el cliente quiere salir
+                    if (nomFitxer == null || nomFitxer.equals("sortir") || nomFitxer.isBlank()) {
+                        System.out.println("Nom del fitxer buit o nul. Sortint...");
+                        break;
+                    }
+                    
+                    System.out.println("Nomfitxer rebut: " + nomFitxer);
+                    
+                    try {
+                        Fitxer fitxer = new Fitxer(nomFitxer);
+                        byte[] contingut = fitxer.getContingut();
+                        System.out.println("Contingut del fitxer a enviar: " + contingut.length + " bytes");
+                        
+                        // Enviar el contingut del fitxer
+                        oos.writeObject(contingut);
+                        oos.flush();
+                        System.out.println("Fitxer enviat al client: " + nomFitxer);
+                    } catch (IOException e) {
+                        System.out.println("Error llegint el fitxer del client: " + e.getMessage());
+                        oos.writeObject(null);
+                        oos.flush();
+                    }
+                } catch (Exception e) {
+                    System.out.println("Error rebent el nom del fitxer o connexió tancada pel client");
+                    break;
+                }
             }
             
-            System.out.println("Nomfitxer rebut: " + nomFitxer);
-            
+            // Cerrar streams
             try {
-                Fitxer fitxer = new Fitxer(nomFitxer);
-                byte[] contingut = fitxer.getContingut();
-                System.out.println("Contingut del fitxer a enviar: " + contingut.length + " bytes");
-                
-                // Enviar el contingut del fitxer
-                oos.writeObject(contingut);
-                oos.flush();
-                System.out.println("Fitxer enviat al client: " + nomFitxer);
-            } catch (IOException e) {
-                System.out.println("Error llegint el fitxer del client: " + e.getMessage());
-                oos.writeObject(null);
-                oos.flush();
+                ois.close();
+                oos.close();
+            } catch (Exception e) {
+                System.out.println("Error tancant els streams: " + e.getMessage());
             }
             
-            ois.close();
-            oos.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
