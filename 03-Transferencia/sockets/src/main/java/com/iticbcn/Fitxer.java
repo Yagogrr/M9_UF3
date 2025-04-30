@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 public class Fitxer {
     private String nom;
     private byte[] contingut;
+
     public Fitxer(String nom) {
         this.nom = nom;
     }
