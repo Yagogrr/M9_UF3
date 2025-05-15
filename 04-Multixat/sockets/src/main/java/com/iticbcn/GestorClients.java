@@ -91,6 +91,13 @@ public class GestorClients extends Thread {
                 }
                 break;
                 
+            case Missatge.CODI_MSG_GRUP:
+                if (partes.length >= 2) {
+                    String msg = partes[1];
+                    servidorXat.enviarMissatgeGrup(nombre + ": " + msg);
+                }
+                break;
+                
             default:
                 System.out.println("Codi d'operació desconegut: " + codigo);
         }
